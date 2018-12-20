@@ -1,0 +1,3 @@
+[submodule "osrmc-sys/src/libosrmc"]
+	path = osrmc-sys/src/libosrmc
+	url = git@github.com:daniel-j-h/libosrmc.git
