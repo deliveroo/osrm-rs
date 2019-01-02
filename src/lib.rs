@@ -6,7 +6,8 @@ mod table;
 mod macros;
 
 pub use self::errors::*;
-use self::table::{TableParameters, TableResponse};
+use self::table::TableParameters;
+pub use self::table::TableResponse;
 
 pub struct Point {
     latitude: f32,
@@ -40,7 +41,7 @@ impl OSRM {
         Ok(OSRM { handle })
     }
 
-    pub fn table(&self, sources: &[Point], destinations: &[Point]) -> Result<f32> {
+    pub fn table(&self, sources: &[Point], destinations: &[Point]) -> Result<TableResponse> {
         let mut params = TableParameters::new()?;
         for source in sources {
             params.add_source(source)?;
@@ -50,8 +51,7 @@ impl OSRM {
         }
 
         let handle = call_with_error!(osrmc_table(self.handle, params.handle))?;
-        let response = TableResponse::from(handle);
-        Ok(response.to_one()?)
+        Ok(TableResponse::from(handle))
     }
 }
 
@@ -74,6 +74,6 @@ mod tests {
                 }],
             )
             .expect("uh oh");
-        assert_eq!(result, 0.0);
+        assert_eq!(result.get_duration(0, 0).unwrap(), 0.0);
     }
 }

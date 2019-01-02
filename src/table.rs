@@ -47,8 +47,12 @@ pub struct TableResponse {
 impl_drop!(TableResponse, osrmc_sys::osrmc_table_response_destruct);
 
 impl TableResponse {
-    pub fn to_one(&self) -> Result<f32> {
-        let result = call_with_error!(osrmc_table_response_duration(self.handle, 0, 0))?;
+    pub fn get_duration(&self, from: usize, to: usize) -> Result<f32> {
+        let result = call_with_error!(osrmc_table_response_duration(
+            self.handle,
+            from as u64,
+            to as u64
+        ))?;
         Ok(result)
     }
 }

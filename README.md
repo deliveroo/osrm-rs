@@ -17,5 +17,5 @@ let result = osrm
             longitude: -0.124899,
         }],
     )?;
-assert_eq!(result, 0.0);
+assert_eq!(result.get_duration(0, 0)?, 0.0);
 ```
