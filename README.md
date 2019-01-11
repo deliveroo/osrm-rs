@@ -5,7 +5,12 @@ Rust bindings for Open Source Routing Machine (OSRM).
 ## Developing
 
 ```sh
+# Install OSRM and its dependencies.
+brew install boost tbb osrm-backend
+
+# Update/initialise the libosrmc submodule:
 git submodule update --init
+
 cargo test
 cargo build
 ```
