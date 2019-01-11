@@ -1,4 +1,4 @@
-use crate::{errors::*, Point};
+use crate::{errors::*, Coordinate};
 
 pub struct Parameters {
     pub handle: osrmc_sys::osrmc_table_params_t,
@@ -16,25 +16,25 @@ impl Parameters {
         })
     }
 
-    fn add_coordinate(&mut self, point: &Point) -> Result<usize> {
+    fn add_coordinate(&mut self, coordinate: &Coordinate) -> Result<usize> {
         call_with_error!(osrmc_params_add_coordinate(
             self.handle as osrmc_sys::osrmc_params_t,
-            point.longitude,
-            point.latitude
+            coordinate.longitude,
+            coordinate.latitude
         ))?;
         let index = self.num_coords;
         self.num_coords += 1;
         Ok(index)
     }
 
-    pub fn add_source(&mut self, point: &Point) -> Result<()> {
-        let index = self.add_coordinate(point)?;
+    pub fn add_source(&mut self, coordinate: &Coordinate) -> Result<()> {
+        let index = self.add_coordinate(coordinate)?;
         call_with_error!(osrmc_table_params_add_source(self.handle, index))?;
         Ok(())
     }
 
-    pub fn add_destination(&mut self, point: &Point) -> Result<()> {
-        let index = self.add_coordinate(point)?;
+    pub fn add_destination(&mut self, coordinate: &Coordinate) -> Result<()> {
+        let index = self.add_coordinate(coordinate)?;
         call_with_error!(osrmc_table_params_add_destination(self.handle, index))?;
         Ok(())
     }

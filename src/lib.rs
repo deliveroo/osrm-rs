@@ -11,7 +11,7 @@ pub use self::errors::{Error, Result};
 pub use self::table::Response as TableResponse;
 
 #[derive(Clone, Debug, PartialEq)]
-pub struct Point {
+pub struct Coordinate {
     pub latitude: f32,
     pub longitude: f32,
 }
@@ -48,7 +48,11 @@ impl Osrm {
         Ok(Osrm { handle })
     }
 
-    pub fn table(&self, sources: &[Point], destinations: &[Point]) -> Result<TableResponse> {
+    pub fn table(
+        &self,
+        sources: &[Coordinate],
+        destinations: &[Coordinate],
+    ) -> Result<TableResponse> {
         let mut params = table::Parameters::new()?;
         for source in sources {
             params.add_source(source)?;
@@ -61,7 +65,7 @@ impl Osrm {
         Ok(TableResponse::from(handle))
     }
 
-    pub fn route(&self, from: &Point, to: &Point) -> Result<RouteResponse> {
+    pub fn route(&self, from: &Coordinate, to: &Coordinate) -> Result<RouteResponse> {
         let mut params = route::Parameters::new()?;
         params.add_coordinate(from)?;
         params.add_coordinate(to)?;
@@ -85,11 +89,11 @@ mod tests {
         let osrm = Osrm::new("./data/1.osrm").expect("uh oh");
         let result = osrm
             .table(
-                &[Point {
+                &[Coordinate {
                     latitude: 51.5062628,
                     longitude: -0.0996648,
                 }],
-                &[Point {
+                &[Coordinate {
                     latitude: 51.5062628,
                     longitude: -0.124899,
                 }],

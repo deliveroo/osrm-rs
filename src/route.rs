@@ -1,5 +1,5 @@
 use crate::errors::*;
-use crate::Point;
+use crate::Coordinate;
 
 pub struct Parameters {
     pub handle: osrmc_sys::osrmc_route_params_t,
@@ -13,11 +13,11 @@ impl Parameters {
         Ok(Parameters { handle })
     }
 
-    pub fn add_coordinate(&mut self, point: &Point) -> Result<()> {
+    pub fn add_coordinate(&mut self, coordinate: &Coordinate) -> Result<()> {
         call_with_error!(osrmc_params_add_coordinate(
             self.handle as osrmc_sys::osrmc_params_t,
-            point.longitude,
-            point.latitude
+            coordinate.longitude,
+            coordinate.latitude
         ))?;
         Ok(())
     }
