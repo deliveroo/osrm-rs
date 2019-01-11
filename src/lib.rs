@@ -35,17 +35,17 @@ impl Config {
     }
 }
 
-pub struct OSRM {
+pub struct Osrm {
     handle: osrmc_sys::osrmc_osrm_t,
 }
 
-impl_drop!(OSRM, osrmc_sys::osrmc_osrm_destruct);
+impl_drop!(Osrm, osrmc_sys::osrmc_osrm_destruct);
 
-impl OSRM {
-    pub fn new<S: Into<Vec<u8>>>(path: S) -> Result<OSRM> {
+impl Osrm {
+    pub fn new<S: Into<Vec<u8>>>(path: S) -> Result<Osrm> {
         let config = Config::new(path)?;
         let handle = call_with_error!(osrmc_osrm_construct(config.handle))?;
-        Ok(OSRM { handle })
+        Ok(Osrm { handle })
     }
 
     pub fn table(&self, sources: &[Point], destinations: &[Point]) -> Result<TableResponse> {
@@ -82,7 +82,7 @@ mod tests {
 
     #[test]
     fn it_works() {
-        let osrm = OSRM::new("./data/1.osrm").expect("uh oh");
+        let osrm = Osrm::new("./data/1.osrm").expect("uh oh");
         let result = osrm
             .table(
                 &[Point {
