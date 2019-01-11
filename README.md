@@ -2,6 +2,14 @@
 
 Rust bindings for Open Source Routing Machine (OSRM).
 
+## Developing
+
+```sh
+git submodule update --init
+cargo test
+cargo build
+```
+
 ## Example
 
 ```rust
