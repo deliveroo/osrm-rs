@@ -1,16 +1,16 @@
 use crate::{call_with_error, errors::*, impl_drop, Point};
 
-pub struct TableParameters {
+pub struct Parameters {
     pub handle: osrmc_sys::osrmc_table_params_t,
     num_coords: usize,
 }
 
-impl_drop!(TableParameters, osrmc_sys::osrmc_table_params_destruct);
+impl_drop!(Parameters, osrmc_sys::osrmc_table_params_destruct);
 
-impl TableParameters {
-    pub fn new() -> Result<TableParameters> {
+impl Parameters {
+    pub fn new() -> Result<Parameters> {
         let handle = call_with_error!(osrmc_table_params_construct())?;
-        Ok(TableParameters {
+        Ok(Parameters {
             handle,
             num_coords: 0,
         })
@@ -40,13 +40,13 @@ impl TableParameters {
     }
 }
 
-pub struct TableResponse {
+pub struct Response {
     handle: osrmc_sys::osrmc_table_response_t,
 }
 
-impl_drop!(TableResponse, osrmc_sys::osrmc_table_response_destruct);
+impl_drop!(Response, osrmc_sys::osrmc_table_response_destruct);
 
-impl TableResponse {
+impl Response {
     pub fn get_duration(&self, from: usize, to: usize) -> Result<f32> {
         let result = call_with_error!(osrmc_table_response_duration(
             self.handle,
@@ -57,8 +57,8 @@ impl TableResponse {
     }
 }
 
-impl From<osrmc_sys::osrmc_table_response_t> for TableResponse {
-    fn from(handle: osrmc_sys::osrmc_table_response_t) -> TableResponse {
-        TableResponse { handle }
+impl From<osrmc_sys::osrmc_table_response_t> for Response {
+    fn from(handle: osrmc_sys::osrmc_table_response_t) -> Response {
+        Response { handle }
     }
 }

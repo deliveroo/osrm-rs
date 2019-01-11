@@ -1,16 +1,16 @@
 use crate::errors::*;
 use crate::Point;
 
-pub struct RouteParameters {
+pub struct Parameters {
     pub handle: osrmc_sys::osrmc_route_params_t,
 }
 
-impl_drop!(RouteParameters, osrmc_sys::osrmc_route_params_destruct);
+impl_drop!(Parameters, osrmc_sys::osrmc_route_params_destruct);
 
-impl RouteParameters {
-    pub fn new() -> Result<RouteParameters> {
+impl Parameters {
+    pub fn new() -> Result<Parameters> {
         let handle = call_with_error!(osrmc_route_params_construct())?;
-        Ok(RouteParameters { handle })
+        Ok(Parameters { handle })
     }
 
     pub fn add_coordinate(&mut self, point: &Point) -> Result<()> {
@@ -23,19 +23,19 @@ impl RouteParameters {
     }
 }
 
-pub struct RouteResponse {
+pub struct Response {
     handle: osrmc_sys::osrmc_route_response_t,
 }
 
-impl_drop!(RouteResponse, osrmc_sys::osrmc_route_response_destruct);
+impl_drop!(Response, osrmc_sys::osrmc_route_response_destruct);
 
-impl From<osrmc_sys::osrmc_route_response_t> for RouteResponse {
+impl From<osrmc_sys::osrmc_route_response_t> for Response {
     fn from(handle: osrmc_sys::osrmc_route_response_t) -> Self {
-        RouteResponse { handle }
+        Response { handle }
     }
 }
 
-impl RouteResponse {
+impl Response {
     pub fn distance(&self) -> Result<f32> {
         let result = call_with_error!(osrmc_route_response_distance(self.handle))?;
         Ok(result)
