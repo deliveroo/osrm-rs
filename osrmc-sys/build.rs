@@ -46,8 +46,15 @@ fn main() {
     generate_libosrmc_bindings();
 
     println!("cargo:rustc-link-lib=boost_system");
-    println!("cargo:rustc-link-lib=boost_thread");
     println!("cargo:rustc-link-lib=boost_filesystem");
     println!("cargo:rustc-link-lib=boost_iostreams");
     println!("cargo:rustc-link-lib=tbb");
+
+    // Boost library names differ on macOS.
+    if env::var("TARGET").unwrap().contains("apple") {
+        println!("cargo:rustc-link-lib=boost_thread-mt");
+    } else {
+        println!("cargo:rustc-link-lib=boost_thread");
+    }
+
 }
