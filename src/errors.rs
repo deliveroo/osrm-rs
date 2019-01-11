@@ -3,7 +3,7 @@ use std::ffi::{self, CStr};
 use std::fmt::{self, Debug, Display};
 use std::result::Result as StdResult;
 
-pub struct OsrmcError {
+struct OsrmcError {
     handle: osrmc_sys::osrmc_error_t,
 }
 
@@ -25,16 +25,21 @@ impl Debug for OsrmcError {
 }
 
 #[derive(Debug)]
-pub enum Error {
+enum ErrorKind {
     Osrmc(OsrmcError),
     FfiNul(ffi::NulError),
 }
 
+#[derive(Debug)]
+pub struct Error {
+    kind: ErrorKind,
+}
+
 impl Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> StdResult<(), fmt::Error> {
-        match self {
-            Error::Osrmc(inner) => Display::fmt(inner, f),
-            Error::FfiNul(inner) => Display::fmt(inner, f),
+        match &self.kind {
+            ErrorKind::Osrmc(inner) => Display::fmt(inner, f),
+            ErrorKind::FfiNul(inner) => Display::fmt(inner, f),
         }
     }
 }
@@ -43,13 +48,17 @@ impl error::Error for Error {}
 
 impl From<osrmc_sys::osrmc_error_t> for Error {
     fn from(handle: osrmc_sys::osrmc_error_t) -> Error {
-        Error::Osrmc(OsrmcError { handle })
+        Error {
+            kind: ErrorKind::Osrmc(OsrmcError { handle }),
+        }
     }
 }
 
 impl From<ffi::NulError> for Error {
     fn from(other: ffi::NulError) -> Error {
-        Error::FfiNul(other)
+        Error {
+            kind: ErrorKind::FfiNul(other),
+        }
     }
 }
 
