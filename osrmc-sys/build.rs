@@ -50,4 +50,5 @@ fn main() {
     // These might be needed for other features in OSRM:
     println!("cargo:rustc-link-lib=boost_filesystem");
     println!("cargo:rustc-link-lib=boost_iostreams-mt");
+    println!("cargo:rustc-link-lib=tbb");
 }

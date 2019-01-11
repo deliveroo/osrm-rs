@@ -4,14 +4,17 @@ mod errors;
 mod table;
 #[macro_use]
 mod macros;
+mod route;
 
 pub use self::errors::*;
+use self::route::{RouteParameters, RouteResponse};
 use self::table::TableParameters;
 pub use self::table::TableResponse;
 
+#[derive(Clone, Debug, PartialEq)]
 pub struct Point {
-    latitude: f32,
-    longitude: f32,
+    pub latitude: f32,
+    pub longitude: f32,
 }
 
 struct Config {
@@ -26,6 +29,11 @@ impl Config {
         let handle = call_with_error!(osrmc_config_construct(cstring.as_ptr()))?;
         Ok(Config { handle })
     }
+}
+
+pub struct Response {
+    pub duration: f32,
+    pub distance: f32,
 }
 
 pub struct OSRM {
@@ -52,6 +60,20 @@ impl OSRM {
 
         let handle = call_with_error!(osrmc_table(self.handle, params.handle))?;
         Ok(TableResponse::from(handle))
+    }
+
+    pub fn route(&self, from: &Point, to: &Point) -> Result<Response> {
+        let mut params = RouteParameters::new()?;
+        params.add_coordinate(from);
+        params.add_coordinate(to);
+
+        let handle = call_with_error!(osrmc_route(self.handle, params.handle))?;
+        let response = RouteResponse::from(handle);
+
+        Ok(Response {
+            duration: response.duration()?,
+            distance: response.distance()?,
+        })
     }
 }
 
