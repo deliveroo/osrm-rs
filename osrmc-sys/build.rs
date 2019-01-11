@@ -46,9 +46,8 @@ fn main() {
     generate_libosrmc_bindings();
 
     println!("cargo:rustc-link-lib=boost_system");
-    println!("cargo:rustc-link-lib=boost_thread-mt");
-    // These might be needed for other features in OSRM:
+    println!("cargo:rustc-link-lib=boost_thread");
     println!("cargo:rustc-link-lib=boost_filesystem");
-    println!("cargo:rustc-link-lib=boost_iostreams-mt");
+    println!("cargo:rustc-link-lib=boost_iostreams");
     println!("cargo:rustc-link-lib=tbb");
 }
