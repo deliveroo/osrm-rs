@@ -1,12 +1,13 @@
 use std::ffi::CString;
 
-mod errors;
-mod table;
 #[macro_use]
 mod macros;
-mod route;
 
-pub use self::errors::*;
+mod errors;
+mod route;
+mod table;
+
+pub use self::errors::{Error, Result};
 pub use self::table::Response as TableResponse;
 
 #[derive(Clone, Debug, PartialEq)]
@@ -15,7 +16,7 @@ pub struct Point {
     pub longitude: f32,
 }
 
-pub struct Response {
+pub struct RouteResponse {
     pub duration: f32,
     pub distance: f32,
 }
@@ -48,7 +49,7 @@ impl OSRM {
     }
 
     pub fn table(&self, sources: &[Point], destinations: &[Point]) -> Result<TableResponse> {
-        let mut params = TableParameters::new()?;
+        let mut params = table::Parameters::new()?;
         for source in sources {
             params.add_source(source)?;
         }
@@ -60,15 +61,15 @@ impl OSRM {
         Ok(TableResponse::from(handle))
     }
 
-    pub fn route(&self, from: &Point, to: &Point) -> Result<Response> {
+    pub fn route(&self, from: &Point, to: &Point) -> Result<RouteResponse> {
         let mut params = route::Parameters::new()?;
-        params.add_coordinate(from);
-        params.add_coordinate(to);
+        params.add_coordinate(from)?;
+        params.add_coordinate(to)?;
 
         let handle = call_with_error!(osrmc_route(self.handle, params.handle))?;
         let response = route::Response::from(handle);
 
-        Ok(Response {
+        Ok(RouteResponse {
             duration: response.duration()?,
             distance: response.distance()?,
         })

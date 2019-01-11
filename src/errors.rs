@@ -3,8 +3,6 @@ use std::ffi::{self, CStr};
 use std::fmt::{self, Debug, Display};
 use std::result::Result as StdResult;
 
-use crate::impl_drop;
-
 pub struct OsrmcError {
     handle: osrmc_sys::osrmc_error_t,
 }

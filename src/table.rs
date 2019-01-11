@@ -1,4 +1,4 @@
-use crate::{call_with_error, errors::*, impl_drop, Point};
+use crate::{errors::*, Point};
 
 pub struct Parameters {
     pub handle: osrmc_sys::osrmc_table_params_t,
