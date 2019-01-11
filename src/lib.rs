@@ -41,6 +41,10 @@ pub struct Osrm {
 
 impl_drop!(Osrm, osrmc_sys::osrmc_osrm_destruct);
 
+// This is just a thin wrapper around the OSRM C++ class, which is thread-safe.
+unsafe impl Send for Osrm {}
+unsafe impl Sync for Osrm {}
+
 impl Osrm {
     pub fn new<S: Into<Vec<u8>>>(path: S) -> Result<Osrm> {
         let config = Config::new(path)?;
