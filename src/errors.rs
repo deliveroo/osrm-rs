@@ -29,6 +29,7 @@ impl Debug for OsrmcError {
 
 #[derive(Debug)]
 enum ErrorKind {
+    Message(String),
     Osrmc(OsrmcError),
     FfiNul(ffi::NulError),
 }
@@ -41,6 +42,7 @@ pub struct Error {
 impl Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> StdResult<(), fmt::Error> {
         match &self.kind {
+            ErrorKind::Message(inner) => Display::fmt(inner, f),
             ErrorKind::Osrmc(inner) => Display::fmt(inner, f),
             ErrorKind::FfiNul(inner) => Display::fmt(inner, f),
         }
@@ -61,6 +63,22 @@ impl From<ffi::NulError> for Error {
     fn from(other: ffi::NulError) -> Error {
         Error {
             kind: ErrorKind::FfiNul(other),
+        }
+    }
+}
+
+impl From<String> for Error {
+    fn from(other: String) -> Error {
+        Error {
+            kind: ErrorKind::Message(other),
+        }
+    }
+}
+
+impl From<&str> for Error {
+    fn from(other: &str) -> Error {
+        Error {
+            kind: ErrorKind::Message(other.into()),
         }
     }
 }

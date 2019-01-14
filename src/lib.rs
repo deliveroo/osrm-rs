@@ -86,23 +86,86 @@ impl Osrm {
 
 #[cfg(test)]
 mod tests {
+    use std::path::Path;
+
     use super::*;
 
+    const OSRM_FILE: &str = "./test-data/berlin-latest.osrm";
+
+    fn load_osrm() -> Result<Osrm> {
+        if !Path::new(OSRM_FILE).exists() {
+            return Err(format!(
+                "Couldn't load {}. Has `./prepare-test-data.sh` been run?",
+                OSRM_FILE
+            ))?;
+        }
+
+        let osrm = Osrm::new(OSRM_FILE)?;
+        Ok(osrm)
+    }
+
     #[test]
-    fn it_works() {
-        let osrm = Osrm::new("./data/1.osrm").expect("uh oh");
-        let result = osrm
-            .table(
-                &[Coordinate {
-                    latitude: 51.5062628,
-                    longitude: -0.0996648,
-                }],
-                &[Coordinate {
-                    latitude: 51.5062628,
-                    longitude: -0.124899,
-                }],
-            )
-            .expect("uh oh");
-        assert_eq!(result.get_duration(0, 0).unwrap(), 0.0);
+    fn test_table() -> Result<()> {
+        let osrm = load_osrm()?;
+        let result = osrm.table(
+            &[
+                Coordinate {
+                    latitude: 52.519930,
+                    longitude: 13.438640,
+                },
+                Coordinate {
+                    latitude: 52.525081,
+                    longitude: 13.430388,
+                },
+            ],
+            &[Coordinate {
+                latitude: 52.513191,
+                longitude: 13.415852,
+            }],
+        )?;
+
+        assert_ne!(result.get_duration(0, 0)?, 0.0);
+        assert_ne!(result.get_duration(1, 0)?, 0.0);
+        assert_ne!(result.get_duration(0, 0)?, result.get_duration(1, 0)?);
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_route() -> Result<()> {
+        let osrm = load_osrm()?;
+
+        let result1 = osrm.route(
+            &Coordinate {
+                latitude: 52.519930,
+                longitude: 13.438640,
+            },
+            &Coordinate {
+                latitude: 52.525081,
+                longitude: 13.430388,
+            },
+        )?;
+
+        assert_ne!(result1.duration, 0.0);
+        assert_ne!(result1.distance, 0.0);
+
+        let result2 = osrm.route(
+            &Coordinate {
+                latitude: 52.519930,
+                longitude: 13.438640,
+            },
+            &Coordinate {
+                latitude: 52.513191,
+                longitude: 13.415852,
+            },
+        )?;
+
+        assert_ne!(result2.duration, 0.0);
+        assert_ne!(result2.distance, 0.0);
+
+        assert_ne!(result1.duration, result2.duration);
+        assert_ne!(result1.distance, result2.distance);
+
+        Ok(())
     }
 }
