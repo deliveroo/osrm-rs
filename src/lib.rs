@@ -1,3 +1,5 @@
+#![deny(warnings)]
+
 use std::ffi::CString;
 
 #[macro_use]
