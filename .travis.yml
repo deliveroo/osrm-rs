@@ -18,5 +18,4 @@ cache: cargo
 script:
   - ./prepare-test-data.sh
   - cargo build --verbose --all
-
   - cargo test --verbose --all
