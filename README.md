@@ -2,11 +2,11 @@
 
 Rust bindings for Open Source Routing Machine (OSRM).
 
-## Developing
+## Developing
 
 ```sh
 # Install OSRM and its dependencies.
-brew install boost tbb osrm-backend
+brew install osrm-backend
 
 # Update/initialise the libosrmc submodule:
 git submodule update --init
@@ -31,4 +31,17 @@ let result = osrm
         }],
     )?;
 assert_eq!(result.get_duration(0, 0)?, 0.0);
+```
+
+
+## Testing
+
+Requires: `wget`, `osrm-bckend`, `docker`
+
+```
+# First download/process the required maps:
+./prepare-test-data
+
+# Run tests:
+cargo test
 ```
