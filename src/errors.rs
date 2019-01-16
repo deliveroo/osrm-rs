@@ -11,6 +11,7 @@ impl_drop!(OsrmcError, osrmc_sys::osrmc_error_destruct);
 
 // This is just a thin wrapper around a std::string.
 unsafe impl Send for OsrmcError {}
+unsafe impl Sync for OsrmcError {}
 
 impl Display for OsrmcError {
     fn fmt(&self, f: &mut fmt::Formatter) -> StdResult<(), fmt::Error> {
