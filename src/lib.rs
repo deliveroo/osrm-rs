@@ -1,6 +1,8 @@
 #![deny(warnings)]
 
 use std::ffi::CString;
+use std::os::unix::ffi::OsStrExt;
+use std::path::Path;
 
 #[macro_use]
 mod macros;
@@ -30,7 +32,8 @@ struct Config {
 impl_drop!(Config, osrmc_sys::osrmc_config_destruct);
 
 impl Config {
-    fn new<S: Into<Vec<u8>>>(path: S) -> Result<Config> {
+    fn new<P: AsRef<Path>>(path: P) -> Result<Config> {
+        let path = path.as_ref().as_os_str().as_bytes();
         let cstring = CString::new(path)?;
         let handle = call_with_error!(osrmc_config_construct(cstring.as_ptr()))?;
         Ok(Config { handle })
@@ -48,7 +51,7 @@ unsafe impl Send for Osrm {}
 unsafe impl Sync for Osrm {}
 
 impl Osrm {
-    pub fn new<S: Into<Vec<u8>>>(path: S) -> Result<Osrm> {
+    pub fn new<P: AsRef<Path>>(path: P) -> Result<Osrm> {
         let config = Config::new(path)?;
         let handle = call_with_error!(osrmc_osrm_construct(config.handle))?;
         Ok(Osrm { handle })
