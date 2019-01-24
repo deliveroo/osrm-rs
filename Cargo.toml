@@ -1,0 +1,10 @@
+[package]
+name = "osrm"
+version = "0.0.1"
+description = "Bindings for Open Source Routing Machine (OSRM)."
+license = "MIT"
+authors = ["Michael Killough <michael.killough@deliveroo.co.uk>"]
+edition = "2018"
+
+[dependencies]
+osrmc-sys = { path = "osrmc-sys", version = "0.0.1" }

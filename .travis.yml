@@ -1,0 +1,21 @@
+language: rust
+
+services:
+  - docker
+
+rust:
+  - stable
+  - beta
+  - nightly
+
+matrix:
+  allow_failures:
+    - rust: nightly
+  fast_finish: true
+
+cache: cargo
+
+script:
+  - ./prepare-test-data.sh
+  - cargo build --verbose --all
+  - cargo test --verbose --all
