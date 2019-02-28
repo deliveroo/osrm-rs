@@ -62,6 +62,10 @@ impl Osrm {
         sources: &[Coordinate],
         destinations: &[Coordinate],
     ) -> Result<TableResponse> {
+        if sources.is_empty() || destinations.is_empty() {
+            return Err("sources/destinations can not be empty".into());
+        }
+
         let mut params = table::Parameters::new()?;
         for source in sources {
             params.add_source(source)?;
@@ -133,6 +137,14 @@ mod tests {
         assert_ne!(result.get_duration(1, 0)?, 0.0);
         assert_ne!(result.get_duration(0, 0)?, result.get_duration(1, 0)?);
 
+        Ok(())
+    }
+
+    #[test]
+    fn test_table_no_parameters() -> Result<()> {
+        let osrm = load_osrm()?;
+        let result = osrm.table(&[], &[]);
+        assert!(result.is_err());
         Ok(())
     }
 
