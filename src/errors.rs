@@ -17,7 +17,7 @@ impl Display for OsrmcError {
     fn fmt(&self, f: &mut fmt::Formatter) -> StdResult<(), fmt::Error> {
         unsafe {
             let ptr = osrmc_sys::osrmc_error_message(self.handle);
-            write!(f, "{}", CStr::from_ptr(ptr).to_string_lossy())
+            write!(f, "OsrmcError: {}", CStr::from_ptr(ptr).to_string_lossy())
         }
     }
 }
@@ -35,6 +35,16 @@ enum ErrorKind {
     FfiNul(ffi::NulError),
 }
 
+impl Display for ErrorKind {
+    fn fmt(&self, f: &mut fmt::Formatter) -> StdResult<(), fmt::Error> {
+        match self {
+            ErrorKind::Message(inner) => Display::fmt(inner, f),
+            ErrorKind::Osrmc(inner) => Display::fmt(inner, f),
+            ErrorKind::FfiNul(inner) => Display::fmt(inner, f),
+        }
+    }
+}
+
 #[derive(Debug)]
 pub struct Error {
     kind: ErrorKind,
@@ -42,11 +52,7 @@ pub struct Error {
 
 impl Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> StdResult<(), fmt::Error> {
-        match &self.kind {
-            ErrorKind::Message(inner) => Display::fmt(inner, f),
-            ErrorKind::Osrmc(inner) => Display::fmt(inner, f),
-            ErrorKind::FfiNul(inner) => Display::fmt(inner, f),
-        }
+        write!(f, "osrm-rs: {}", self.kind)
     }
 }
 
