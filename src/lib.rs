@@ -101,6 +101,19 @@ mod tests {
 
     const OSRM_FILE: &str = "./test-data/berlin-latest.osrm";
 
+    const COORDINATE_A: Coordinate = Coordinate {
+        latitude: 52.519930,
+        longitude: 13.438640,
+    };
+    const COORDINATE_B: Coordinate = Coordinate {
+        latitude: 52.525081,
+        longitude: 13.430388,
+    };
+    const COORDINATE_C: Coordinate = Coordinate {
+        latitude: 52.513191,
+        longitude: 13.415852,
+    };
+
     fn load_osrm() -> Result<Osrm> {
         if !Path::new(OSRM_FILE).exists() {
             return Err(format!(
@@ -116,22 +129,7 @@ mod tests {
     #[test]
     fn test_table() -> Result<()> {
         let osrm = load_osrm()?;
-        let result = osrm.table(
-            &[
-                Coordinate {
-                    latitude: 52.519930,
-                    longitude: 13.438640,
-                },
-                Coordinate {
-                    latitude: 52.525081,
-                    longitude: 13.430388,
-                },
-            ],
-            &[Coordinate {
-                latitude: 52.513191,
-                longitude: 13.415852,
-            }],
-        )?;
+        let result = osrm.table(&[COORDINATE_A, COORDINATE_B], &[COORDINATE_C])?;
 
         assert_ne!(result.get_duration(0, 0)?, 0.0);
         assert_ne!(result.get_duration(1, 0)?, 0.0);
@@ -152,30 +150,12 @@ mod tests {
     fn test_route() -> Result<()> {
         let osrm = load_osrm()?;
 
-        let result1 = osrm.route(
-            &Coordinate {
-                latitude: 52.519930,
-                longitude: 13.438640,
-            },
-            &Coordinate {
-                latitude: 52.525081,
-                longitude: 13.430388,
-            },
-        )?;
+        let result1 = osrm.route(&COORDINATE_A, &COORDINATE_B)?;
 
         assert_ne!(result1.duration, 0.0);
         assert_ne!(result1.distance, 0.0);
 
-        let result2 = osrm.route(
-            &Coordinate {
-                latitude: 52.519930,
-                longitude: 13.438640,
-            },
-            &Coordinate {
-                latitude: 52.513191,
-                longitude: 13.415852,
-            },
-        )?;
+        let result2 = osrm.route(&COORDINATE_A, &COORDINATE_C)?;
 
         assert_ne!(result2.duration, 0.0);
         assert_ne!(result2.distance, 0.0);
