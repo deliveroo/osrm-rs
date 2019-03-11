@@ -1,6 +1,7 @@
+use std::borrow::Cow;
 use std::error;
 use std::ffi::{self, CStr};
-use std::fmt::{self, Debug, Display};
+use std::fmt::{self, Display};
 use std::result::Result as StdResult;
 
 struct OsrmcError {
@@ -9,29 +10,30 @@ struct OsrmcError {
 
 impl_drop!(OsrmcError, osrmc_sys::osrmc_error_destruct);
 
-// This is just a thin wrapper around a std::string.
-unsafe impl Send for OsrmcError {}
-unsafe impl Sync for OsrmcError {}
+impl OsrmcError {
+    fn code(&self) -> Cow<'_, str> {
+        unsafe {
+            let ptr = osrmc_sys::osrmc_error_code(self.handle);
+            CStr::from_ptr(ptr).to_string_lossy()
+        }
+    }
 
-impl Display for OsrmcError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> StdResult<(), fmt::Error> {
+    fn message(&self) -> Cow<'_, str> {
         unsafe {
             let ptr = osrmc_sys::osrmc_error_message(self.handle);
-            write!(f, "OsrmcError: {}", CStr::from_ptr(ptr).to_string_lossy())
+            CStr::from_ptr(ptr).to_string_lossy()
         }
     }
 }
 
-impl Debug for OsrmcError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> StdResult<(), fmt::Error> {
-        Display::fmt(self, f)
-    }
-}
-
-#[derive(Debug)]
-enum ErrorKind {
+#[derive(Clone, Debug, PartialEq)]
+pub enum ErrorKind {
     Message(String),
-    Osrmc(OsrmcError),
+    Osrmc {
+        code: String,
+        message: String,
+    },
+    NoRoute,
     FfiNul(ffi::NulError),
 }
 
@@ -39,15 +41,22 @@ impl Display for ErrorKind {
     fn fmt(&self, f: &mut fmt::Formatter) -> StdResult<(), fmt::Error> {
         match self {
             ErrorKind::Message(inner) => Display::fmt(inner, f),
-            ErrorKind::Osrmc(inner) => Display::fmt(inner, f),
+            ErrorKind::Osrmc { code, message }=> write!(f, "Osrmc: {}: {}", code, message),
+            ErrorKind::NoRoute => write!(f, "Impossible route between points"),
             ErrorKind::FfiNul(inner) => Display::fmt(inner, f),
         }
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct Error {
     kind: ErrorKind,
+}
+
+impl Error {
+    pub fn kind(&self) -> ErrorKind {
+        self.kind.clone()
+    }
 }
 
 impl Display for Error {
@@ -60,9 +69,14 @@ impl error::Error for Error {}
 
 impl From<osrmc_sys::osrmc_error_t> for Error {
     fn from(handle: osrmc_sys::osrmc_error_t) -> Error {
-        Error {
-            kind: ErrorKind::Osrmc(OsrmcError { handle }),
-        }
+        let error = OsrmcError { handle };
+        let code = error.code().into_owned();
+        let message = error.message().into_owned();
+        let kind = match code.as_ref() {
+            "NoRoute" => ErrorKind::NoRoute,
+            _ => ErrorKind::Osrmc { code, message }
+        };
+        Error { kind }
     }
 }
 

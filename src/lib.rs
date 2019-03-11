@@ -11,7 +11,7 @@ mod errors;
 mod route;
 mod table;
 
-pub use self::errors::{Error, Result};
+pub use self::errors::{Error, ErrorKind, Result};
 pub use self::table::Response as TableResponse;
 
 #[derive(Clone, Debug, PartialEq)]
@@ -20,6 +20,7 @@ pub struct Coordinate {
     pub longitude: f32,
 }
 
+#[derive(Debug)]
 pub struct RouteResponse {
     pub duration: f32,
     pub distance: f32,
@@ -98,6 +99,7 @@ mod tests {
     use std::path::Path;
 
     use super::*;
+    use crate::errors::ErrorKind;
 
     const OSRM_FILE: &str = "./test-data/gcc-states-latest.osrm";
 
@@ -171,6 +173,16 @@ mod tests {
 
         assert_ne!(result1.duration, result2.duration);
         assert_ne!(result1.distance, result2.distance);
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_unroutable() -> Result<()> {
+        let osrm = load_osrm()?;
+
+        let result = osrm.route(&COORDINATE_BROKEN_A, &COORDINATE_BROKEN_B);
+        assert_eq!(result.err().unwrap().kind(), ErrorKind::NoRoute);
 
         Ok(())
     }
