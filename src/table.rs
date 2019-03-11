@@ -1,5 +1,27 @@
 use crate::{errors::*, Coordinate};
 
+struct Annotations {
+    handle: osrmc_sys::osrmc_table_annotations_t,
+}
+
+impl_drop!(Annotations, osrmc_sys::osrmc_table_annotations_destruct);
+
+impl Annotations {
+    fn new(include_distance: bool) -> Result<Annotations> {
+        let handle = call_with_error!(osrmc_table_annotations_construct())?;
+        let mut annotations = Annotations { handle };
+        if include_distance {
+            annotations.set_distance()?;
+        }
+        Ok(annotations)
+    }
+
+    fn set_distance(&mut self) -> Result<()> {
+        call_with_error!(osrmc_table_annotations_set_distance(self.handle))?;
+        Ok(())
+    }
+}
+
 pub struct Parameters {
     pub handle: osrmc_sys::osrmc_table_params_t,
     num_coords: usize,
@@ -8,8 +30,12 @@ pub struct Parameters {
 impl_drop!(Parameters, osrmc_sys::osrmc_table_params_destruct);
 
 impl Parameters {
-    pub fn new() -> Result<Parameters> {
+    pub fn new(include_distance: bool) -> Result<Parameters> {
         let handle = call_with_error!(osrmc_table_params_construct())?;
+
+        let annotations = Annotations::new(include_distance)?;
+        call_with_error!(osrmc_table_params_set_annotations(handle, annotations.handle))?;
+
         Ok(Parameters {
             handle,
             num_coords: 0,
@@ -41,7 +67,8 @@ impl Parameters {
 }
 
 pub struct Response {
-    handle: osrmc_sys::osrmc_table_response_t,
+    pub(crate) include_distance: bool,
+    pub(crate) handle: osrmc_sys::osrmc_table_response_t,
 }
 
 impl_drop!(Response, osrmc_sys::osrmc_table_response_destruct);
@@ -55,10 +82,17 @@ impl Response {
         ))?;
         Ok(result)
     }
-}
 
-impl From<osrmc_sys::osrmc_table_response_t> for Response {
-    fn from(handle: osrmc_sys::osrmc_table_response_t) -> Response {
-        Response { handle }
+    pub fn get_distance(&self, from: usize, to: usize) -> Result<f32> {
+        if !self.include_distance {
+            return Err("get_distance() called on table response without distance".into());
+        }
+
+        let result = call_with_error!(osrmc_table_response_distance(
+            self.handle,
+            from as u64,
+            to as u64
+        ))?;
+        Ok(result)
     }
 }
