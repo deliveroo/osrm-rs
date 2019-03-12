@@ -11,7 +11,7 @@ mod errors;
 mod route;
 mod table;
 
-pub use self::errors::{Error, Result};
+pub use self::errors::{Error, ErrorKind, Result};
 pub use self::table::Response as TableResponse;
 
 #[derive(Clone, Debug, PartialEq)]
@@ -20,6 +20,7 @@ pub struct Coordinate {
     pub longitude: f32,
 }
 
+#[derive(Debug)]
 pub struct RouteResponse {
     pub duration: f32,
     pub distance: f32,
@@ -98,8 +99,31 @@ mod tests {
     use std::path::Path;
 
     use super::*;
+    use crate::errors::ErrorKind;
 
-    const OSRM_FILE: &str = "./test-data/berlin-latest.osrm";
+    const OSRM_FILE: &str = "./test-data/gcc-states-latest.osrm";
+
+    const COORDINATE_A: Coordinate = Coordinate {
+        latitude: 24.4476192,
+        longitude: 54.3710367,
+    };
+    const COORDINATE_B: Coordinate = Coordinate {
+        latitude: 24.4548709,
+        longitude: 54.391076,
+    };
+    const COORDINATE_C: Coordinate = Coordinate {
+        latitude: 24.4549789,
+        longitude: 54.376517,
+    };
+
+    const COORDINATE_BROKEN_A: Coordinate = Coordinate {
+        latitude: 25.07165,
+        longitude: 55.402115,
+    };
+    const COORDINATE_BROKEN_B: Coordinate = Coordinate {
+        latitude: 25.086226,
+        longitude: 55.385334,
+    };
 
     fn load_osrm() -> Result<Osrm> {
         if !Path::new(OSRM_FILE).exists() {
@@ -116,22 +140,7 @@ mod tests {
     #[test]
     fn test_table() -> Result<()> {
         let osrm = load_osrm()?;
-        let result = osrm.table(
-            &[
-                Coordinate {
-                    latitude: 52.519930,
-                    longitude: 13.438640,
-                },
-                Coordinate {
-                    latitude: 52.525081,
-                    longitude: 13.430388,
-                },
-            ],
-            &[Coordinate {
-                latitude: 52.513191,
-                longitude: 13.415852,
-            }],
-        )?;
+        let result = osrm.table(&[COORDINATE_A, COORDINATE_B], &[COORDINATE_C])?;
 
         assert_ne!(result.get_duration(0, 0)?, 0.0);
         assert_ne!(result.get_duration(1, 0)?, 0.0);
@@ -152,36 +161,28 @@ mod tests {
     fn test_route() -> Result<()> {
         let osrm = load_osrm()?;
 
-        let result1 = osrm.route(
-            &Coordinate {
-                latitude: 52.519930,
-                longitude: 13.438640,
-            },
-            &Coordinate {
-                latitude: 52.525081,
-                longitude: 13.430388,
-            },
-        )?;
+        let result1 = osrm.route(&COORDINATE_A, &COORDINATE_B)?;
 
         assert_ne!(result1.duration, 0.0);
         assert_ne!(result1.distance, 0.0);
 
-        let result2 = osrm.route(
-            &Coordinate {
-                latitude: 52.519930,
-                longitude: 13.438640,
-            },
-            &Coordinate {
-                latitude: 52.513191,
-                longitude: 13.415852,
-            },
-        )?;
+        let result2 = osrm.route(&COORDINATE_A, &COORDINATE_C)?;
 
         assert_ne!(result2.duration, 0.0);
         assert_ne!(result2.distance, 0.0);
 
         assert_ne!(result1.duration, result2.duration);
         assert_ne!(result1.distance, result2.distance);
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_unroutable() -> Result<()> {
+        let osrm = load_osrm()?;
+
+        let result = osrm.route(&COORDINATE_BROKEN_A, &COORDINATE_BROKEN_B);
+        assert_eq!(result.err().unwrap().kind(), ErrorKind::NoRoute);
 
         Ok(())
     }
