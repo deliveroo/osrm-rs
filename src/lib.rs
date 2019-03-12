@@ -67,7 +67,8 @@ impl Osrm {
             return Err("sources/destinations can not be empty".into());
         }
 
-        let mut params = table::Parameters::new()?;
+        let include_distance = true;
+        let mut params = table::Parameters::new(include_distance)?;
         for source in sources {
             params.add_source(source)?;
         }
@@ -76,7 +77,7 @@ impl Osrm {
         }
 
         let handle = call_with_error!(osrmc_table(self.handle, params.handle))?;
-        Ok(TableResponse::from(handle))
+        Ok(TableResponse { include_distance, handle })
     }
 
     pub fn route(&self, from: &Coordinate, to: &Coordinate) -> Result<RouteResponse> {
@@ -146,6 +147,10 @@ mod tests {
         assert_ne!(result.get_duration(1, 0)?, 0.0);
         assert_ne!(result.get_duration(0, 0)?, result.get_duration(1, 0)?);
 
+        assert_ne!(result.get_distance(0, 0)?, 0.0);
+        assert_ne!(result.get_distance(1, 0)?, 0.0);
+        assert_ne!(result.get_distance(0, 0)?, result.get_distance(1, 0)?);
+
         Ok(())
     }
 
@@ -182,6 +187,21 @@ mod tests {
         let osrm = load_osrm()?;
 
         let result = osrm.route(&COORDINATE_BROKEN_A, &COORDINATE_BROKEN_B);
+        assert_eq!(result.err().unwrap().kind(), ErrorKind::NoRoute);
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_unroutable_table() -> Result<()> {
+        let osrm = load_osrm()?;
+
+        let resp = osrm.table(&[COORDINATE_BROKEN_A], &[COORDINATE_BROKEN_B])?;
+
+        let result = resp.get_duration(0, 0);
+        assert_eq!(result.err().unwrap().kind(), ErrorKind::NoRoute);
+
+        let result = resp.get_distance(0, 0);
         assert_eq!(result.err().unwrap().kind(), ErrorKind::NoRoute);
 
         Ok(())
