@@ -126,6 +126,11 @@ mod tests {
         longitude: 55.385334,
     };
 
+    const COORDINATE_INVALID: Coordinate = Coordinate {
+        latitude: -190.0,
+        longitude: -190.0,
+    };
+
     fn load_osrm() -> Result<Osrm> {
         if !Path::new(OSRM_FILE).exists() {
             return Err(format!(
@@ -203,6 +208,16 @@ mod tests {
 
         let result = resp.get_distance(0, 0);
         assert_eq!(result.err().unwrap().kind(), ErrorKind::NoRoute);
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_invalid_coordinate() -> Result<()> {
+        let osrm = load_osrm()?;
+
+        let result = osrm.route(&COORDINATE_A, &COORDINATE_INVALID);
+        assert_eq!(result.err().unwrap().kind(), ErrorKind::InvalidCoordinate);
 
         Ok(())
     }
