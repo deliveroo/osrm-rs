@@ -48,6 +48,12 @@ fn main() {
     println!("cargo:rustc-link-lib=boost_system");
     println!("cargo:rustc-link-lib=boost_filesystem");
     println!("cargo:rustc-link-lib=boost_iostreams");
+    // The homebrew `osrm-backend` package specifies tbb@2020 as a dependency which is keg only and
+    // therefore not symlinked to a directory where the linker can find it. `rustc-link-search` is a
+    // hack which tells rustc to add the TBB location to the linker search path. Note that the
+    // DYLD_LIBRARY_PATH environment variable can no longer be used on MacOS due to System Integrity
+    // Protection.
+    println!("cargo:rustc-link-search=/usr/local/opt/tbb@2020/lib");
     println!("cargo:rustc-link-lib=tbb");
 
     // Boost library names differ on macOS.
