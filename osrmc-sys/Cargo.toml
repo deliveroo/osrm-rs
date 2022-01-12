@@ -1,6 +1,6 @@
 [package]
 name = "osrmc-sys"
-version = "0.0.1"
+version = "0.0.2"
 description = "libosrmc C bindings."
 license = "MIT"
 authors = ["Michael Killough <michael.killough@deliveroo.co.uk>"]
