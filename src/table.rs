@@ -34,7 +34,10 @@ impl Parameters {
         let handle = call_with_error!(osrmc_table_params_construct())?;
 
         let annotations = Annotations::new(include_distance)?;
-        call_with_error!(osrmc_table_params_set_annotations(handle, annotations.handle))?;
+        call_with_error!(osrmc_table_params_set_annotations(
+            handle,
+            annotations.handle
+        ))?;
 
         Ok(Parameters {
             handle,

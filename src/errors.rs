@@ -29,10 +29,7 @@ impl OsrmcError {
 #[derive(Clone, Debug, PartialEq)]
 pub enum ErrorKind {
     Message(String),
-    Osrmc {
-        code: String,
-        message: String,
-    },
+    Osrmc { code: String, message: String },
     NoRoute,
     InvalidCoordinate,
     FfiNul(ffi::NulError),
@@ -42,7 +39,7 @@ impl Display for ErrorKind {
     fn fmt(&self, f: &mut fmt::Formatter) -> StdResult<(), fmt::Error> {
         match self {
             ErrorKind::Message(inner) => Display::fmt(inner, f),
-            ErrorKind::Osrmc { code, message }=> write!(f, "Osrmc: {}: {}", code, message),
+            ErrorKind::Osrmc { code, message } => write!(f, "Osrmc: {}: {}", code, message),
             ErrorKind::NoRoute => write!(f, "Impossible route between points"),
             ErrorKind::InvalidCoordinate => write!(f, "Invalid coordinate value"),
             ErrorKind::FfiNul(inner) => Display::fmt(inner, f),
@@ -77,7 +74,7 @@ impl From<osrmc_sys::osrmc_error_t> for Error {
         let kind = match code.as_ref() {
             "NoRoute" => ErrorKind::NoRoute,
             "InvalidValue" => ErrorKind::InvalidCoordinate,
-            _ => ErrorKind::Osrmc { code, message }
+            _ => ErrorKind::Osrmc { code, message },
         };
         Error { kind }
     }
