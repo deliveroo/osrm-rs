@@ -17,7 +17,7 @@ impl Annotations {
     }
 
     fn set_distance(&mut self) -> Result<()> {
-        call_with_error!(osrmc_table_annotations_set_distance(self.handle))?;
+        call_with_error!(osrmc_table_annotations_enable_distance(self.handle, true))?;
         Ok(())
     }
 }
