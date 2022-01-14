@@ -2,19 +2,6 @@
 
 Rust bindings for Open Source Routing Machine (OSRM).
 
-## Developing
-
-```sh
-# Install OSRM and its dependencies.
-brew install osrm-backend
-
-# Update/initialise the libosrmc submodule:
-git submodule update --init
-
-cargo test
-cargo build
-```
-
 ## Example
 
 ```rust
@@ -33,15 +20,31 @@ let result = osrm
 assert_eq!(result.get_duration(0, 0)?, 0.0);
 ```
 
+## Developing
+
+```sh
+# Install OSRM and its dependencies
+brew install osrm-backend
+# OR `brew install --HEAD deliveroo/osrm/osrm-backend` for Deliveroo's patched version
+
+# Update/initialise the libosrmc submodule
+git submodule update --init
+
+# Build library
+cargo build
+```
 
 ## Testing
 
-Requires: `wget`, `osrm-bckend`, `docker`
+```sh
+# Follow steps in `Developing` section
 
-```
-# First download/process the required maps:
-./prepare-test-data
+# Install additional dependencies
+brew install wget docker
 
-# Run tests:
+# Download/process the required maps
+./prepare-test-data.sh
+
+# Run tests
 cargo test
 ```

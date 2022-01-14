@@ -1,13 +1,13 @@
 [package]
 name = "osrmc-sys"
-version = "0.0.1"
+version = "0.0.2"
 description = "libosrmc C bindings."
 license = "MIT"
 authors = ["Michael Killough <michael.killough@deliveroo.co.uk>"]
 edition = "2018"
 
 [build-dependencies]
-bindgen = "0.42"
+bindgen = "0.59"
 cc = "1.0"
 pkg-config = "0.3"
 

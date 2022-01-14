@@ -77,7 +77,10 @@ impl Osrm {
         }
 
         let handle = call_with_error!(osrmc_table(self.handle, params.handle))?;
-        Ok(TableResponse { include_distance, handle })
+        Ok(TableResponse {
+            include_distance,
+            handle,
+        })
     }
 
     pub fn route(&self, from: &Coordinate, to: &Coordinate) -> Result<RouteResponse> {
@@ -105,25 +108,25 @@ mod tests {
     const OSRM_FILE: &str = "./test-data/gcc-states-latest.osrm";
 
     const COORDINATE_A: Coordinate = Coordinate {
-        latitude: 24.4476192,
-        longitude: 54.3710367,
+        latitude: 24.447_618,
+        longitude: 54.371_037,
     };
     const COORDINATE_B: Coordinate = Coordinate {
-        latitude: 24.4548709,
-        longitude: 54.391076,
+        latitude: 24.454_87,
+        longitude: 54.391_076,
     };
     const COORDINATE_C: Coordinate = Coordinate {
-        latitude: 24.4549789,
-        longitude: 54.376517,
+        latitude: 24.454_979,
+        longitude: 54.376_52,
     };
 
     const COORDINATE_BROKEN_A: Coordinate = Coordinate {
-        latitude: 25.07165,
-        longitude: 55.402115,
+        latitude: 25.071_65,
+        longitude: 55.402_115,
     };
     const COORDINATE_BROKEN_B: Coordinate = Coordinate {
-        latitude: 25.086226,
-        longitude: 55.385334,
+        latitude: 25.086_226,
+        longitude: 55.385_334,
     };
 
     const COORDINATE_INVALID: Coordinate = Coordinate {
@@ -136,7 +139,8 @@ mod tests {
             return Err(format!(
                 "Couldn't load {}. Has `./prepare-test-data.sh` been run?",
                 OSRM_FILE
-            ))?;
+            )
+            .into());
         }
 
         let osrm = Osrm::new(OSRM_FILE)?;

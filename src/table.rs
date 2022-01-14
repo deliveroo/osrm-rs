@@ -34,7 +34,10 @@ impl Parameters {
         let handle = call_with_error!(osrmc_table_params_construct())?;
 
         let annotations = Annotations::new(include_distance)?;
-        call_with_error!(osrmc_table_params_set_annotations(handle, annotations.handle))?;
+        call_with_error!(osrmc_table_params_set_annotations(
+            handle,
+            annotations.handle
+        ))?;
 
         Ok(Parameters {
             handle,
@@ -55,13 +58,16 @@ impl Parameters {
 
     pub fn add_source(&mut self, coordinate: &Coordinate) -> Result<()> {
         let index = self.add_coordinate(coordinate)?;
-        call_with_error!(osrmc_table_params_add_source(self.handle, index))?;
+        call_with_error!(osrmc_table_params_add_source(self.handle, index as u64))?;
         Ok(())
     }
 
     pub fn add_destination(&mut self, coordinate: &Coordinate) -> Result<()> {
         let index = self.add_coordinate(coordinate)?;
-        call_with_error!(osrmc_table_params_add_destination(self.handle, index))?;
+        call_with_error!(osrmc_table_params_add_destination(
+            self.handle,
+            index as u64
+        ))?;
         Ok(())
     }
 }
