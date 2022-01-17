@@ -52,8 +52,10 @@ fn main() {
     // therefore not symlinked to a directory where the linker can find it. `rustc-link-search` is a
     // hack which tells rustc to add the TBB location to the linker search path. Note that the
     // DYLD_LIBRARY_PATH environment variable can no longer be used on MacOS due to System Integrity
-    // Protection.
+    // Protection. `/usr/local` is the Homebrew install path on Intel and `/opt/homebrew` is for
+    // Apple Silicon.
     println!("cargo:rustc-link-search=/usr/local/opt/tbb@2020/lib");
+    println!("cargo:rustc-link-search=/opt/homebrew/opt/tbb@2020/lib");
     println!("cargo:rustc-link-lib=tbb");
 
     // Boost library names differ on macOS.
