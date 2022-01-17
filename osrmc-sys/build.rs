@@ -56,6 +56,7 @@ fn main() {
     // Apple Silicon.
     println!("cargo:rustc-link-search=/usr/local/opt/tbb@2020/lib");
     println!("cargo:rustc-link-search=/opt/homebrew/opt/tbb@2020/lib");
+    println!("cargo:rustc-link-search=/opt/homebrew/opt/boost/lib");
     println!("cargo:rustc-link-lib=tbb");
 
     // Boost library names differ on macOS.
