@@ -1,0 +1,13 @@
+name: CODEOWNERS Validation Call
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  validate_codeowners:
+    uses: deliveroo/GHAS-enablement-repo/.github/workflows/codeowners-validation.yml@main
