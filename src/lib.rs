@@ -79,6 +79,8 @@ impl Osrm {
         let handle = call_with_error!(osrmc_table(self.handle, params.handle))?;
         Ok(TableResponse {
             include_distance,
+            num_sources: sources.len(),
+            num_destinations: destinations.len(),
             handle,
         })
     }
@@ -213,6 +215,65 @@ mod tests {
         let result = resp.get_distance(0, 0);
         assert_eq!(result.err().unwrap().kind(), ErrorKind::NoRoute);
 
+        Ok(())
+    }
+
+    #[test]
+    fn test_table_bulk_matches_per_cell() -> Result<()> {
+        let osrm = load_osrm()?;
+
+        // Non-square, and includes a known unroutable pair (BROKEN_A -> BROKEN_B).
+        let sources = [COORDINATE_A, COORDINATE_B, COORDINATE_BROKEN_A];
+        let destinations = [
+            COORDINATE_C,
+            COORDINATE_BROKEN_B,
+            COORDINATE_A,
+            COORDINATE_B,
+        ];
+        let resp = osrm.table(&sources, &destinations)?;
+
+        assert_eq!(resp.num_sources(), sources.len());
+        assert_eq!(resp.num_destinations(), destinations.len());
+
+        let durations = resp.durations()?;
+        let distances = resp.distances()?;
+        assert_eq!(durations.len(), sources.len() * destinations.len());
+        assert_eq!(distances.len(), sources.len() * destinations.len());
+
+        let mut unreachable = 0;
+        for from in 0..sources.len() {
+            for to in 0..destinations.len() {
+                let i = from * destinations.len() + to;
+                match resp.get_duration(from, to) {
+                    Ok(d) => assert_eq!(durations[i], d, "duration {}->{}", from, to),
+                    Err(e) => {
+                        assert_eq!(e.kind(), ErrorKind::NoRoute);
+                        assert!(durations[i].is_infinite(), "duration {}->{}", from, to);
+                        unreachable += 1;
+                    }
+                }
+                match resp.get_distance(from, to) {
+                    Ok(d) => assert_eq!(distances[i], d, "distance {}->{}", from, to),
+                    Err(e) => {
+                        assert_eq!(e.kind(), ErrorKind::NoRoute);
+                        assert!(distances[i].is_infinite(), "distance {}->{}", from, to);
+                    }
+                }
+            }
+        }
+        assert!(unreachable > 0, "fixture should include an unroutable cell");
+        assert!(durations[2 * destinations.len() + 1].is_infinite());
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_table_bulk_distances_without_distance() -> Result<()> {
+        let osrm = load_osrm()?;
+        let mut resp = osrm.table(&[COORDINATE_A], &[COORDINATE_C])?;
+        resp.include_distance = false;
+        assert!(resp.distances().is_err());
+        assert!(resp.get_distance(0, 0).is_err());
         Ok(())
     }
 
