@@ -74,6 +74,8 @@ impl Parameters {
 
 pub struct Response {
     pub(crate) include_distance: bool,
+    pub(crate) num_sources: usize,
+    pub(crate) num_destinations: usize,
     pub(crate) handle: osrmc_sys::osrmc_table_response_t,
 }
 
@@ -100,5 +102,67 @@ impl Response {
             to as u64
         ))?;
         Ok(result)
+    }
+
+    /// Number of sources (rows) in the table.
+    pub fn num_sources(&self) -> usize {
+        self.num_sources
+    }
+
+    /// Number of destinations (columns) in the table.
+    pub fn num_destinations(&self) -> usize {
+        self.num_destinations
+    }
+
+    /// All durations in one pass, in row-major order: the duration from source `from` to
+    /// destination `to` is at index `from * num_destinations() + to`.
+    ///
+    /// Unreachable cells are `f32::INFINITY` (where [`Response::get_duration`] returns
+    /// `ErrorKind::NoRoute`), so callers should check `is_finite()`.
+    pub fn durations(&self) -> Result<Vec<f32>> {
+        let len = self.num_cells();
+        let mut out = Vec::with_capacity(len);
+        let written = call_with_error!(osrmc_table_response_durations(
+            self.handle,
+            out.as_mut_ptr(),
+            len as _
+        ))?;
+        self.finish(out, written as usize)
+    }
+
+    /// All distances in one pass, with the same layout and unreachable semantics as
+    /// [`Response::durations`].
+    pub fn distances(&self) -> Result<Vec<f32>> {
+        if !self.include_distance {
+            return Err("distances() called on table response without distance".into());
+        }
+
+        let len = self.num_cells();
+        let mut out = Vec::with_capacity(len);
+        let written = call_with_error!(osrmc_table_response_distances(
+            self.handle,
+            out.as_mut_ptr(),
+            len as _
+        ))?;
+        self.finish(out, written as usize)
+    }
+
+    fn num_cells(&self) -> usize {
+        self.num_sources * self.num_destinations
+    }
+
+    fn finish(&self, mut out: Vec<f32>, written: usize) -> Result<Vec<f32>> {
+        let expected = self.num_cells();
+        if written != expected {
+            return Err(format!(
+                "table response has {} cells, expected {}x{}",
+                written, self.num_sources, self.num_destinations
+            )
+            .into());
+        }
+        // SAFETY: the osrmc_bulk shim initialised the first `written` elements, and `written`
+        // equals the `len` the buffer was allocated with, so it is within capacity.
+        unsafe { out.set_len(written) };
+        Ok(out)
     }
 }

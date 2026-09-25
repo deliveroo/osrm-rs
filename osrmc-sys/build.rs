@@ -11,7 +11,9 @@ fn compile_libosrmc() {
     build
         .cpp(true)
         .include("src/libosrmc/libosrmc")
-        .file("src/libosrmc/libosrmc/osrmc.cc");
+        .file("src/libosrmc/libosrmc/osrmc.cc")
+        // Local bulk-extraction shim; keeps the libosrmc submodule unmodified.
+        .file("src/osrmc_bulk.cc");
 
     let libosrm = pkg_config::Config::new()
         .probe("libosrm")
@@ -65,5 +67,4 @@ fn main() {
     } else {
         println!("cargo:rustc-link-lib=boost_thread");
     }
-
 }
