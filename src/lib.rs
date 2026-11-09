@@ -53,6 +53,10 @@ unsafe impl Sync for Osrm {}
 
 impl Osrm {
     pub fn new<P: AsRef<Path>>(path: P) -> Result<Osrm> {
+        // Hold a TBB scheduler for the life of the process so the per-call schedulers in OSRM's
+        // many-to-many search never tear the worker pool down (CSIG-3488, glibc bug 19951).
+        unsafe { osrmc_sys::osrmc_tbb_keepalive() };
+
         let config = Config::new(path)?;
         let handle = call_with_error!(osrmc_osrm_construct(config.handle))?;
         Ok(Osrm { handle })

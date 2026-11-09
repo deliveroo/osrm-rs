@@ -29,6 +29,23 @@ fn compile_libosrmc() {
     build.compile("libosrmc");
 }
 
+// Keeps a TBB scheduler alive for the process lifetime (CSIG-3488). Separate translation unit so the
+// libosrmc submodule stays untouched.
+fn compile_tbb_keepalive() {
+    let mut build = cc::Build::new();
+    build
+        .cpp(true)
+        .flag_if_supported("-std=c++14")
+        .include("src")
+        .file("src/osrmc_tbb.cc");
+
+    // Homebrew's tbb@2020 is keg only; point the compiler at its headers (Intel and Apple Silicon).
+    build.include("/usr/local/opt/tbb@2020/include");
+    build.include("/opt/homebrew/opt/tbb@2020/include");
+
+    build.compile("osrmc_tbb");
+}
+
 fn generate_libosrmc_bindings() {
     let bindings = bindgen::Builder::default()
         .header("src/wrapper.h")
@@ -43,6 +60,7 @@ fn generate_libosrmc_bindings() {
 
 fn main() {
     compile_libosrmc();
+    compile_tbb_keepalive();
     generate_libosrmc_bindings();
 
     println!("cargo:rustc-link-lib=boost_system");
