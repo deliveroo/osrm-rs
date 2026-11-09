@@ -1,7 +1,8 @@
 //! CSIG-3488: OSRM's many-to-many search creates a `tbb::task_scheduler_init` on every call. Without a
 //! process-lifetime scheduler, TBB tears its worker pool down between calls and detaches every worker,
 //! which can SIGSEGV on glibc < 2.43 (glibc bug 19951). `Osrm::new` therefore keeps a scheduler alive;
-//! this test checks that the TBB workers are not recreated between table calls.
+//! this test checks that the TBB worker pool survives between table calls. Without the keepalive no TBB
+//! worker threads exist while the process is idle, because each call tears the pool down on exit.
 //!
 //! Needs the OSRM test data, like the unit tests (`./prepare-test-data.sh`). Override with
 //! `OSRM_TEST_FILE` and `OSRM_TEST_COORDS="lat,lon;lat,lon;lat,lon"` (three points on that map).
@@ -84,12 +85,12 @@ fn tbb_workers_are_not_recreated_between_table_calls() {
     let before = thread_ids();
     assert!(
         before.len() > 2,
-        "expected TBB worker threads to exist after warm-up, saw {:?}",
+        "expected TBB worker threads to persist while idle after warm-up (pool torn down after each call?), saw {:?}",
         before
     );
 
     // Sequential calls with idle gaps: each call's scheduler is the only active user, so without the
-    // keepalive the pool is destroyed and recreated every time.
+    // keepalive the pool would be destroyed and recreated every time.
     for _ in 0..300 {
         table();
         thread::sleep(Duration::from_millis(2));
