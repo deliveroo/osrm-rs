@@ -68,6 +68,13 @@ fn tbb_workers_are_not_recreated_between_table_calls() {
         file
     );
 
+    // A single-core host would default TBB to one thread, which has no workers to observe.
+    if env::var_os("OSRM_NUM_THREADS").is_none() {
+        env::set_var("OSRM_NUM_THREADS", "4");
+    }
+
+    // Threads that exist before the engine starts: libtest's main and test threads.
+    let baseline = thread_ids();
     let osrm = Osrm::new(&file).unwrap();
     let center = coordinates().remove(0);
     let sources = scatter(&center, 40);
@@ -83,10 +90,13 @@ fn tbb_workers_are_not_recreated_between_table_calls() {
     }
     thread::sleep(Duration::from_millis(300));
     let before = thread_ids();
+    // `Osrm::new` adds exactly one thread of its own, the parked keepalive thread. Anything beyond that is
+    // a TBB worker, so this fails if the keepalive thread exists but its scheduler no longer holds a pool.
+    let spawned: BTreeSet<u64> = before.difference(&baseline).copied().collect();
     assert!(
-        before.len() > 2,
-        "expected TBB worker threads to persist while idle after warm-up (pool torn down after each call?), saw {:?}",
-        before
+        spawned.len() > 1,
+        "expected TBB worker threads besides the keepalive thread to persist while idle after warm-up (pool torn down after each call?), saw {:?} new threads",
+        spawned
     );
 
     // Sequential calls with idle gaps: each call's scheduler is the only active user, so without the

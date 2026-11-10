@@ -1,5 +1,6 @@
 #include <condition_variable>
 #include <cstdlib>
+#include <memory>
 #include <mutex>
 #include <thread>
 
@@ -21,22 +22,30 @@ int requested_threads() {
 extern "C" void osrmc_tbb_keepalive(void) {
   static std::once_flag once;
   std::call_once(once, [] {
-    std::mutex mutex;
-    std::condition_variable ready_cv;
-    bool ready = false;
+    /*
+     * The detached thread outlives this lambda, so the handshake state is shared and owned by both sides:
+     * if the waiter returns as soon as it sees `ready`, the worker's trailing notify_one() must not touch
+     * a stack-allocated condition variable that has already been destroyed.
+     */
+    struct Handshake {
+      std::mutex mutex;
+      std::condition_variable cv;
+      bool ready = false;
+    };
+    const auto handshake = std::make_shared<Handshake>();
 
     /*
      * A dedicated thread owns the scheduler: a task_scheduler_init lives and dies with the thread that
      * created it, and callers of osrmc_osrm_construct (map loaders) may exit. This thread parks forever,
      * so it never races its own pthread_detach and the scheduler is never destroyed.
      */
-    std::thread([&mutex, &ready_cv, &ready] {
+    std::thread([handshake] {
       tbb::task_scheduler_init scheduler{requested_threads()};
       {
-        std::lock_guard<std::mutex> lock(mutex);
-        ready = true;
+        std::lock_guard<std::mutex> lock(handshake->mutex);
+        handshake->ready = true;
       }
-      ready_cv.notify_one();
+      handshake->cv.notify_one();
 
       std::mutex park_mutex;
       std::condition_variable park_cv;
@@ -45,7 +54,7 @@ extern "C" void osrmc_tbb_keepalive(void) {
     }).detach();
 
     /* Block until the scheduler exists so the first table call already sees a live pool. */
-    std::unique_lock<std::mutex> lock(mutex);
-    ready_cv.wait(lock, [&ready] { return ready; });
+    std::unique_lock<std::mutex> lock(handshake->mutex);
+    handshake->cv.wait(lock, [&handshake] { return handshake->ready; });
   });
 }
