@@ -29,8 +29,10 @@ deciseconds, distances in metres), `table_rows` hands over each finished row fro
 process memory instead of mapping it.
 
 They are implemented in `osrmc-sys/src/osrmc_ext.cc` next to libosrmc and need an OSRM build with
-`OSRM::TableRaw`, `OSRM::TableRows` and `OSRM::RouteRaw`, which are not in stock OSRM 5.26; against stock
-OSRM 5.26 the crate does not build.
+`OSRM::TableRaw`, `OSRM::TableRows` and `OSRM::RouteRaw`, which are not in stock OSRM 5.26. Against stock OSRM
+the crate still builds (`build.rs` checks the installed headers) and `osrm::raw_results_available()` is false: the raw
+calls then fail with `NotImplemented`. `Osrm::snap_cache_counters` reports OSRM's snap cache (zero when it is off or
+unavailable).
 
 ## Developing
 

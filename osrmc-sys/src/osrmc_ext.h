@@ -2,9 +2,10 @@
 #define OSRMC_EXT_H_
 
 /*
- * Additions to libosrmc for raw results. They need an OSRM build that provides
- * OSRM::TableRaw, OSRM::TableRows and OSRM::RouteRaw; stock OSRM 5.26 does not
- * have them.
+ * Additions to libosrmc for raw results and snap cache counters. They need an
+ * OSRM build that provides OSRM::TableRaw, OSRM::TableRows, OSRM::RouteRaw and
+ * OSRM::GetSnapCacheCounters; stock OSRM 5.26 does not have them (see
+ * osrmc_ext_raw_available).
  * Errors follow libosrmc: on failure *error is set and owned by the caller.
  */
 
@@ -13,6 +14,11 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+/* 1 if the functions below were built against an OSRM that provides them. Built against stock OSRM,
+   osrmc_table_raw, osrmc_table_rows and osrmc_route_raw fail with NotImplemented and the snap cache
+   counters are zero. */
+OSRMC_API int osrmc_ext_raw_available(void);
 
 /* Map the dataset files (on, the default) or read them into process memory (off). */
 OSRMC_API void osrmc_config_set_use_mmap(osrmc_config_t config, int on);
@@ -36,6 +42,17 @@ OSRMC_API void osrmc_table_rows(osrmc_osrm_t osrm, osrmc_table_params_t params, 
    osrmc_route_response_distance report, without building a response. Not available with steps. */
 OSRMC_API void osrmc_route_raw(osrmc_osrm_t osrm, osrmc_route_params_t params, float* duration, float* distance,
                                osrmc_error_t* error);
+
+/* Counters of the engine's snap cache (OSRM::GetSnapCacheCounters), all zero when it is off. */
+typedef struct osrmc_snap_cache_counters {
+  unsigned long long hits;
+  unsigned long long misses;
+  unsigned long long admissions;
+  unsigned long long evictions;
+  unsigned long long entries;
+  unsigned long long capacity;
+} osrmc_snap_cache_counters_t;
+OSRMC_API void osrmc_snap_cache_counters(osrmc_osrm_t osrm, osrmc_snap_cache_counters_t* counters);
 
 #ifdef __cplusplus
 }

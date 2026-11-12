@@ -1,3 +1,5 @@
+use std::collections::hash_map::{Entry, HashMap};
+
 use crate::{errors::*, Coordinate};
 
 struct Annotations {
@@ -57,6 +59,8 @@ impl Parameters {
     }
 
     /// Parameters for a table of `sources` x `destinations`, with distances.
+    /// Each distinct coordinate is passed (and snapped) once, with sources and
+    /// destinations referring to it by index.
     pub fn with_coordinates(
         sources: &[Coordinate],
         destinations: &[Coordinate],
@@ -65,11 +69,25 @@ impl Parameters {
             return Err("sources/destinations can not be empty".into());
         }
         let mut params = Parameters::new(true)?;
+        let mut indices = HashMap::with_capacity(sources.len() + destinations.len());
+        let mut index_of = |params: &mut Parameters, coordinate: &Coordinate| -> Result<u64> {
+            let key = (
+                coordinate.latitude.to_bits(),
+                coordinate.longitude.to_bits(),
+            );
+            let index = match indices.entry(key) {
+                Entry::Occupied(entry) => *entry.get(),
+                Entry::Vacant(entry) => *entry.insert(params.add_coordinate(coordinate)?),
+            };
+            Ok(index as u64)
+        };
         for source in sources {
-            params.add_source(source)?;
+            let index = index_of(&mut params, source)?;
+            call_with_error!(osrmc_table_params_add_source(params.handle, index))?;
         }
         for destination in destinations {
-            params.add_destination(destination)?;
+            let index = index_of(&mut params, destination)?;
+            call_with_error!(osrmc_table_params_add_destination(params.handle, index))?;
         }
         Ok(params)
     }

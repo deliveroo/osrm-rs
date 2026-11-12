@@ -27,11 +27,45 @@ pub struct RouteResponse {
     pub distance: f32,
 }
 
+/// Whether `table_raw`, `table_rows` and `route_raw` work: this crate was built
+/// against an OSRM that provides them. Against stock OSRM they fail with
+/// `NotImplemented` and the snap cache counters are zero.
+pub fn raw_results_available() -> bool {
+    unsafe { osrmc_sys::osrmc_ext_raw_available() != 0 }
+}
+
 /// How the engine holds its dataset.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Options {
     /// Map the dataset files (`true`, OSRM's default) or read them into process memory.
     pub use_mmap: bool,
+}
+
+/// Totals of the engine's snap cache since it was created, all zero when it is
+/// off. Lookups are plain snaps by the table and route services; a missed
+/// coordinate is stored (admitted) on its second sighting, and storing into a
+/// full set evicts an entry.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct SnapCacheCounters {
+    pub hits: u64,
+    pub misses: u64,
+    pub admissions: u64,
+    pub evictions: u64,
+    pub entries: u64,
+    pub capacity: u64,
+}
+
+impl From<osrmc_sys::osrmc_snap_cache_counters> for SnapCacheCounters {
+    fn from(counters: osrmc_sys::osrmc_snap_cache_counters) -> Self {
+        SnapCacheCounters {
+            hits: counters.hits,
+            misses: counters.misses,
+            admissions: counters.admissions,
+            evictions: counters.evictions,
+            entries: counters.entries,
+            capacity: counters.capacity,
+        }
+    }
 }
 
 impl Default for Options {
@@ -174,6 +208,17 @@ impl Osrm {
             &mut distance
         ))?;
         Ok(RouteResponse { duration, distance })
+    }
+
+    /// Counters of the snap cache shared by the table and route calls. Needs an
+    /// OSRM build with `OSRM::GetSnapCacheCounters`.
+    pub fn snap_cache_counters(&self) -> SnapCacheCounters {
+        let mut counters = std::mem::MaybeUninit::uninit();
+        unsafe {
+            osrmc_sys::osrmc_snap_cache_counters(self.handle, counters.as_mut_ptr());
+            counters.assume_init()
+        }
+        .into()
     }
 }
 
@@ -422,6 +467,41 @@ mod tests {
         let b = in_memory.table_raw(&points, &points)?;
         assert_eq!(a.durations(), b.durations());
         assert_eq!(a.distances(), b.distances());
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_raw_results_available() {
+        assert!(raw_results_available());
+    }
+
+    #[test]
+    fn test_snap_cache_counts_and_keeps_results() -> Result<()> {
+        let osrm = load_osrm()?;
+        let points = grid();
+        // One lookup per distinct coordinate and request.
+        let lookups = points.len() as u64;
+
+        let first = osrm.table_raw(&points, &points)?;
+        let counters = osrm.snap_cache_counters();
+        assert!(counters.capacity > 0);
+        assert_eq!(counters.misses, lookups);
+        assert_eq!(counters.hits, 0);
+        assert_eq!(counters.admissions, 0);
+
+        // Stored on the second sighting, read from the cache on the third.
+        for round in 2..=3 {
+            let again = osrm.table_raw(&points, &points)?;
+            assert_eq!(first.durations(), again.durations());
+            assert_eq!(first.distances(), again.distances());
+            let counters = osrm.snap_cache_counters();
+            assert_eq!(counters.hits + counters.misses, round * lookups);
+            assert_eq!(counters.entries, counters.admissions - counters.evictions);
+        }
+        let counters = osrm.snap_cache_counters();
+        assert!(counters.admissions > 0);
+        assert!(counters.hits > 0);
 
         Ok(())
     }
