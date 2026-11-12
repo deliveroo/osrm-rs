@@ -351,8 +351,25 @@ mod tests {
             .collect()
     }
 
+    fn raw_results_for_test() -> bool {
+        let available = raw_results_available();
+        if std::env::var_os("OSRM_TEST_REQUIRE_RAW").is_some() {
+            assert!(
+                available,
+                "OSRM_TEST_REQUIRE_RAW needs a patched OSRM build"
+            );
+        }
+        if !available {
+            eprintln!("Skipping raw-result parity test: linked OSRM has no raw APIs");
+        }
+        available
+    }
+
     #[test]
     fn test_table_raw_matches_table() -> Result<()> {
+        if !raw_results_for_test() {
+            return Ok(());
+        }
         let osrm = load_osrm()?;
         let sources = grid();
         let mut destinations = grid();
@@ -396,6 +413,9 @@ mod tests {
 
     #[test]
     fn test_table_rows_match_table_raw() -> Result<()> {
+        if !raw_results_for_test() {
+            return Ok(());
+        }
         let osrm = load_osrm()?;
         let sources = grid();
         let destinations = grid();
@@ -434,6 +454,9 @@ mod tests {
 
     #[test]
     fn test_route_raw_matches_route() -> Result<()> {
+        if !raw_results_for_test() {
+            return Ok(());
+        }
         let osrm = load_osrm()?;
         let points = grid();
         for (i, from) in points.iter().enumerate().step_by(5) {
@@ -459,6 +482,9 @@ mod tests {
 
     #[test]
     fn test_in_memory_dataset_gives_the_same_results() -> Result<()> {
+        if !raw_results_for_test() {
+            return Ok(());
+        }
         let mapped = load_osrm()?;
         let in_memory = Osrm::with_options(OSRM_FILE, Options { use_mmap: false })?;
         let points = grid();
@@ -472,12 +498,87 @@ mod tests {
     }
 
     #[test]
-    fn test_raw_results_available() {
-        assert!(raw_results_available());
+    fn test_stock_osrm_keeps_legacy_apis_and_reports_unavailable_raw_results() -> Result<()> {
+        if raw_results_available() {
+            return Ok(());
+        }
+        // Fail rather than silently skip raw parity in a patched test job.
+        raw_results_for_test();
+        let osrm = load_osrm()?;
+        let sources = [COORDINATE_A];
+        let destinations = [COORDINATE_B];
+
+        let table = osrm.table(&sources, &destinations)?;
+        assert!(table.get_duration(0, 0)? > 0.0);
+        assert!(table.get_distance(0, 0)? > 0.0);
+        let route = osrm.route(&COORDINATE_A, &COORDINATE_B)?;
+        assert!(route.duration > 0.0);
+        assert!(route.distance > 0.0);
+
+        let assert_not_implemented = |error: Error| match error.kind() {
+            ErrorKind::Osrmc { code, .. } => assert_eq!(code, "NotImplemented"),
+            kind => panic!("expected NotImplemented, got {:?}", kind),
+        };
+        match osrm.table_raw(&sources, &destinations) {
+            Err(error) => assert_not_implemented(error),
+            Ok(_) => panic!("stock OSRM unexpectedly returned a raw table"),
+        }
+        let callbacks = std::sync::atomic::AtomicUsize::new(0);
+        let rows = osrm.table_rows(&sources, &destinations, |_, _, _| {
+            callbacks.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+        });
+        assert_not_implemented(rows.expect_err("stock OSRM unexpectedly returned rows"));
+        assert_eq!(callbacks.into_inner(), 0);
+        assert_not_implemented(
+            osrm.route_raw(&COORDINATE_A, &COORDINATE_B)
+                .expect_err("stock OSRM unexpectedly returned a raw route"),
+        );
+        assert_eq!(osrm.snap_cache_counters(), SnapCacheCounters::default());
+        Ok(())
+    }
+
+    #[test]
+    fn test_same_point_tables_match_legacy_raw_and_rows() -> Result<()> {
+        if !raw_results_for_test() {
+            return Ok(());
+        }
+        let osrm = load_osrm()?;
+        for &(num_sources, num_destinations) in &[(1, 1), (1, 4), (3, 1), (3, 4)] {
+            let sources = vec![COORDINATE_A; num_sources];
+            let destinations = vec![COORDINATE_A; num_destinations];
+            let legacy = osrm.table(&sources, &destinations)?;
+            let raw = osrm.table_raw(&sources, &destinations)?;
+            let cells = num_sources * num_destinations;
+            assert_eq!(raw.durations().len(), cells);
+            assert_eq!(raw.distances().len(), cells);
+            let rows = std::sync::Mutex::new(vec![None; num_sources]);
+            osrm.table_rows(&sources, &destinations, |row, durations, distances| {
+                let mut rows = rows.lock().unwrap();
+                assert!(rows[row].is_none(), "row {} handed over twice", row);
+                rows[row] = Some((durations.to_vec(), distances.to_vec()));
+            })?;
+            for (row, values) in rows.into_inner().unwrap().into_iter().enumerate() {
+                let (durations, distances) = values.expect("every row is handed over");
+                let start = row * num_destinations;
+                let end = start + num_destinations;
+                assert_eq!(&durations[..], &raw.durations()[start..end]);
+                assert_eq!(&distances[..], &raw.distances()[start..end]);
+                for column in 0..num_destinations {
+                    assert_eq!(legacy.get_duration(row, column)?, 0.0);
+                    assert_eq!(legacy.get_distance(row, column)?, 0.0);
+                    assert_eq!(durations[column], 0);
+                    assert_eq!(distances[column], 0.0);
+                }
+            }
+        }
+        Ok(())
     }
 
     #[test]
     fn test_snap_cache_counts_and_keeps_results() -> Result<()> {
+        if !raw_results_for_test() {
+            return Ok(());
+        }
         let osrm = load_osrm()?;
         let points = grid();
         // One lookup per distinct coordinate and request.

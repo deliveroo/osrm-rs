@@ -62,3 +62,11 @@ brew install wget docker
 # Run tests
 cargo test
 ```
+
+The suite supports stock and patched OSRM builds. With stock OSRM it checks that the legacy table/route
+APIs still work, raw calls return `NotImplemented` without invoking row callbacks, and cache counters
+are zero. Tests that require raw results print a skip message; use `cargo test -- --nocapture` to see it.
+
+For a patched build, run `OSRM_TEST_REQUIRE_RAW=1 cargo test`. This fails if raw-result support is missing,
+so a patched test job cannot silently skip the parity checks. Raw parity tests include all-identical
+coordinates in 1×1, 1×N, N×1 and N×M tables. The cache test expects the cache to be enabled.

@@ -89,6 +89,12 @@ impl Parameters {
             let index = index_of(&mut params, destination)?;
             call_with_error!(osrmc_table_params_add_destination(params.handle, index))?;
         }
+        // OSRM requires at least two coordinates even when every source and
+        // destination is the same point. Keep the request valid without
+        // changing its source/destination indexes or result dimensions.
+        if params.num_coords == 1 {
+            params.add_coordinate(&sources[0])?;
+        }
         Ok(params)
     }
 
@@ -200,5 +206,28 @@ pub(crate) unsafe extern "C" fn row_trampoline<F>(
     }));
     if outcome.is_err() {
         std::process::abort();
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn identical_coordinates_preserve_native_minimum() -> Result<()> {
+        let point = Coordinate {
+            latitude: 24.447_618,
+            longitude: 54.358_475,
+        };
+        for (rows, columns) in [(1, 1), (1, 4), (3, 1), (3, 4)] {
+            let params = Parameters::with_coordinates(
+                &vec![point.clone(); rows],
+                &vec![point.clone(); columns],
+            )?;
+            // OSRM TableParameters::IsValid requires at least two coordinates,
+            // including for nonempty tables whose points are all identical.
+            assert_eq!(params.num_coords, 2, "{}x{} identical table", rows, columns);
+        }
+        Ok(())
     }
 }
