@@ -20,6 +20,18 @@ let result = osrm
 assert_eq!(result.get_duration(0, 0)?, 0.0);
 ```
 
+## Raw results
+
+`Osrm::table_raw`, `Osrm::table_rows` and `Osrm::route_raw` return the same numbers as `table` and `route`
+without building an OSRM response object: `table_raw` borrows the search's own result vectors (durations in
+deciseconds, distances in metres), `table_rows` hands over each finished row from OSRM's worker threads, and
+`route_raw` reads a route's duration and distance directly. `Osrm::with_options` can read the dataset into
+process memory instead of mapping it.
+
+They are implemented in `osrmc-sys/src/osrmc_ext.cc` next to libosrmc and need an OSRM build with
+`OSRM::TableRaw`, `OSRM::TableRows` and `OSRM::RouteRaw`, which are not in stock OSRM 5.26; against stock
+OSRM 5.26 the crate does not build.
+
 ## Developing
 
 ```sh

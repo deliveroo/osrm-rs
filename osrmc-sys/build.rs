@@ -11,7 +11,9 @@ fn compile_libosrmc() {
     build
         .cpp(true)
         .include("src/libosrmc/libosrmc")
-        .file("src/libosrmc/libosrmc/osrmc.cc");
+        .include("src")
+        .file("src/libosrmc/libosrmc/osrmc.cc")
+        .file("src/osrmc_ext.cc");
 
     let libosrm = pkg_config::Config::new()
         .probe("libosrm")
