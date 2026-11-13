@@ -11,12 +11,33 @@ fn compile_libosrmc() {
     build
         .cpp(true)
         .include("src/libosrmc/libosrmc")
-        .file("src/libosrmc/libosrmc/osrmc.cc");
+        .include("src")
+        .file("src/libosrmc/libosrmc/osrmc.cc")
+        .file("src/osrmc_ext.cc");
 
     let libosrm = pkg_config::Config::new()
         .probe("libosrm")
         .expect("Could not call pkg-config for libosrm");
     println!("pkgconfig: {:?}", libosrm);
+    // The raw-result additions need the patched OSRM (see src/osrmc_ext.h); against a stock
+    // build they compile to stubs that report NotImplemented.
+    let patched = libosrm.include_paths.iter().any(|path| {
+        path.join("osrm/snap_cache_counters.hpp").exists()
+            || path.join("snap_cache_counters.hpp").exists()
+    });
+    println!("cargo:rerun-if-env-changed=OSRMC_EXT_REQUIRE_RAW");
+    let required = env::var_os("OSRMC_EXT_REQUIRE_RAW").is_some_and(|value| value == "1");
+    if !patched && required {
+        panic!(
+            "OSRMC_EXT_REQUIRE_RAW=1 but the libosrm found by pkg-config has no \
+             TableRaw/TableRows/RouteRaw (osrm/snap_cache_counters.hpp not in {:?})",
+            libosrm.include_paths
+        );
+    }
+    if !patched {
+        println!("cargo:warning=OSRM without TableRaw/TableRows/RouteRaw: raw results unavailable");
+        build.define("OSRMC_EXT_STOCK_OSRM", None);
+    }
     for include in libosrm.include_paths {
         build.include(include);
     }
@@ -42,6 +63,9 @@ fn generate_libosrmc_bindings() {
 }
 
 fn main() {
+    for file in ["src/wrapper.h", "src/osrmc_ext.h", "src/osrmc_ext.cc"] {
+        println!("cargo:rerun-if-changed={}", file);
+    }
     compile_libosrmc();
     generate_libosrmc_bindings();
 
