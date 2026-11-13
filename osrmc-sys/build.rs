@@ -25,6 +25,15 @@ fn compile_libosrmc() {
         path.join("osrm/snap_cache_counters.hpp").exists()
             || path.join("snap_cache_counters.hpp").exists()
     });
+    println!("cargo:rerun-if-env-changed=OSRMC_EXT_REQUIRE_RAW");
+    let required = env::var_os("OSRMC_EXT_REQUIRE_RAW").is_some_and(|value| value == "1");
+    if !patched && required {
+        panic!(
+            "OSRMC_EXT_REQUIRE_RAW=1 but the libosrm found by pkg-config has no \
+             TableRaw/TableRows/RouteRaw (osrm/snap_cache_counters.hpp not in {:?})",
+            libosrm.include_paths
+        );
+    }
     if !patched {
         println!("cargo:warning=OSRM without TableRaw/TableRows/RouteRaw: raw results unavailable");
         build.define("OSRMC_EXT_STOCK_OSRM", None);

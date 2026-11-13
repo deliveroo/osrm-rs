@@ -60,7 +60,9 @@ impl Parameters {
 
     /// Parameters for a table of `sources` x `destinations`, with distances.
     /// Each distinct coordinate is passed (and snapped) once, with sources and
-    /// destinations referring to it by index.
+    /// destinations referring to it by index. The exception is a table whose
+    /// sources and destinations are all the same point: OSRM needs at least
+    /// two coordinates, so that point is passed (and snapped) a second time.
     pub fn with_coordinates(
         sources: &[Coordinate],
         destinations: &[Coordinate],

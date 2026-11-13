@@ -31,7 +31,8 @@ process memory instead of mapping it.
 They are implemented in `osrmc-sys/src/osrmc_ext.cc` next to libosrmc and need an OSRM build with
 `OSRM::TableRaw`, `OSRM::TableRows` and `OSRM::RouteRaw`, which are not in stock OSRM 5.26. Against stock OSRM
 the crate still builds (`build.rs` checks the installed headers) and `osrm::raw_results_available()` is false: the raw
-calls then fail with `NotImplemented`. `Osrm::snap_cache_counters` reports OSRM's snap cache (zero when it is off or
+calls then fail with `NotImplemented`. Build with `OSRMC_EXT_REQUIRE_RAW=1` to make the build fail instead when
+the patched headers are not found. `Osrm::snap_cache_counters` reports OSRM's snap cache (zero when it is off or
 unavailable).
 
 ## Developing
