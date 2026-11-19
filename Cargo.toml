@@ -8,3 +8,7 @@ edition = "2018"
 
 [dependencies]
 osrmc-sys = { path = "osrmc-sys", version = "0.0.2" }
+
+[features]
+# Raw table/route results, OSRM options and snap cache counters (`src/raw.rs`).
+raw-results = ["osrmc-sys/raw-results"]
