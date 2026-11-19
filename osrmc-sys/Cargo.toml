@@ -12,3 +12,7 @@ cc = "1.0"
 pkg-config = "0.3"
 
 [dependencies]
+
+[features]
+# Compiles src/osrmc_ext.cc and generates bindings for src/osrmc_ext.h.
+raw-results = []
